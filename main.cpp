@@ -8,6 +8,9 @@
 #include <iostream>
 
 colour rayColour(const ray& r, const hittable& world, int depth) {
+
+    // Recursive function that returns the colour of the pixel after the ray has been bounced around
+
     hitRecord rec;
 
     // If we've exceeded the ray bounce limit, no more light is gathered
@@ -26,78 +29,42 @@ colour rayColour(const ray& r, const hittable& world, int depth) {
         
     }
 
+    // Background
     vec3 unitDirection = unitVector(r.direction());
-    auto t = 0.5*(unitDirection.y() + 1.0);
+    auto t = 0.5*(unitDirection.y() + 1.0);  // t measures height of pixel
     return (1.0-t)*colour(1.0, 1.0, 1.0) + t*colour(0.5, 0.7, 1.0);
-}
-
-hittableList random_scene() {
-    hittableList world;
-
-    auto ground_material = make_shared<lambertian>(colour(0.5, 0.5, 0.5));
-    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, ground_material));
-
-    for (int a = -11; a < 11; a++) {
-        for (int b = -11; b < 11; b++) {
-            auto choose_mat = randomDouble();
-            point3 center(a + 0.9*randomDouble(), 0.2, b + 0.9*randomDouble());
-
-            if ((center - point3(4, 0.2, 0)).length() > 0.9) {
-                shared_ptr<material> sphere_material;
-
-                if (choose_mat < 0.8) {
-                    // diffuse
-                    auto albedo = colour::random() * colour::random();
-                    sphere_material = make_shared<lambertian>(albedo);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
-                } else if (choose_mat < 0.95) {
-                    // metal
-                    auto albedo = colour::random(0.5, 1);
-                    auto fuzz = randomDouble(0, 0.5);
-                    sphere_material = make_shared<metal>(albedo, fuzz);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
-                } else {
-                    // glass
-                    sphere_material = make_shared<dielectric>(1.5);
-                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
-                }
-            }
-        }
-    }
-
-    auto material1 = make_shared<dielectric>(1.5);
-    world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
-
-    auto material2 = make_shared<lambertian>(colour(0.4, 0.2, 0.1));
-    world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
-
-    auto material3 = make_shared<metal>(colour(0.7, 0.6, 0.5), 0.0);
-    world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
-
-    return world;
 }
 
 int main() {
 
     // Image
-
-    const auto aspect_ratio = 3.0 / 2.0;
-    const int imageWidth = 1200;
-    const int imageHeight = static_cast<int>(imageWidth / aspect_ratio);
-    const int samplesPerPixel = 100;
+    const auto aspectRatio = 3.0 / 2.0;
+    const int imageWidth = 400;
+    const int imageHeight = static_cast<int>(imageWidth / aspectRatio);
+    const int samplesPerPixel = 20;
     const int maxDepth = 20;
 
     // World
-    auto world = random_scene();
+    hittableList world;
+
+    auto material_ground = make_shared<lambertian>(colour(0.8, 0.8, 0.0));
+    auto material_center = make_shared<lambertian>(colour(0.7, 0.3, 0.3));
+    auto material_left   = make_shared<metal>(colour(0.8, 0.8, 0.8), 0.4);
+    auto material_right  = make_shared<metal>(colour(0.8, 0.6, 0.2), 0.0);
+
+    world.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
+    world.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
+    world.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
 
     // Camera
     point3 lookfrom(13,2,3);
     point3 lookat(0,0,0);
     vec3 vup(0,1,0);
-    auto dist_to_focus = 10.0;
+    auto distToFocus = 10.0;
     auto aperture = 0.1;
 
-    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
+    camera cam(lookfrom, lookat, vup, 20, aspectRatio, aperture, distToFocus);
 
     // Render
     std::cout << "P3\n" << imageWidth << ' ' << imageHeight << "\n255\n";

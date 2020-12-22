@@ -28,14 +28,15 @@ class hittableList : public hittable {
 
 };
 
-bool hittableList::hit(const ray& r, double tmin, double tmax, hitRecord& rec) const {
+bool hittableList::hit(const ray& r, double tMin, double tMax, hitRecord& rec) const {
 
     hitRecord tempRec;
     bool hitAnything = false;
-    auto closestSoFar = tmax;
+    auto closestSoFar = tMax;
 
+    // Range-based for loop
     for (const auto& object : objects) {
-        if (object->hit(r, tmin, closestSoFar, tempRec)) {
+        if (object->hit(r, tMin, closestSoFar, tempRec)) {
             hitAnything = true;
             closestSoFar= tempRec.t;
             rec = tempRec;

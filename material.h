@@ -4,6 +4,10 @@
 #include "rtweekend.h"
 
 class material {
+
+    // Abstract class, that does two things:
+    // - Produce a scattered ray, or say it absorbed the incident ray
+    // - If scattered, say by how much the ray should be attenuated
     
     public:
         virtual bool scatter(const ray& rIn, const hitRecord& rec, colour& attenuation, ray& scattered) const = 0;
@@ -18,19 +22,17 @@ class lambertian : public material {
 
         lambertian(const colour& a) : albedo(a) {}
 
-        virtual bool scatter(
-            const ray& r_in, const hitRecord& rec, colour& attenuation, ray& scattered
-        ) const override {
+        virtual bool scatter(const ray& rIn, const hitRecord& rec, colour& attenuation, ray& scattered) const override {
 
-            auto scatterDirection = rec.normal + randomUnitVector();
+            auto scatterDirection = rec.normal + randomUnitVector();  // Scatter in random point on unit sphere centred at unit normal to surface
 
-            // Catch degenerate scatter direction
-            if (scatterDirection.nearZero())
+            // Catch degenerate scatter direction: if the random unit vector is opposite rec.normal, would produce a zero vector, so we instead just return the normal direction
+            if (scatterDirection.nearZero())  // If only one statement, braces not necessary
                 scatterDirection = rec.normal;
 
-            scattered = ray(rec.p, scatterDirection);
-            attenuation = albedo;
-            return true;
+            scattered = ray(rec.p, scatterDirection);  // Update scattered ray (as attenuation is passed as an argument, and it gets updated)
+            attenuation = albedo;  // Update the attenuation - note that, if we pass the pointer (i.e. colour& attenuation), the variables from main gets modified
+            return true;  // Lambertian materials always scatter
         }
 };
 
@@ -39,17 +41,15 @@ class metal : public material {
     public:
 
         colour albedo;
-        double fuzz;
+        double fuzz;  // The "fuzziness" of the metal
 
         metal(const colour& a, double f) : albedo(a), fuzz(f < 1 ? f : 1) {}
 
-        virtual bool scatter(
-            const ray& r_in, const hitRecord& rec, colour& attenuation, ray& scattered
-        ) const override {
-            vec3 reflected = reflect(unitVector(r_in.direction()), rec.normal);
-            scattered = ray(rec.p, reflected + fuzz * randomInUnitSphere());
-            attenuation = albedo;
-            return (dot(scattered.direction(), rec.normal) > 0);
+        virtual bool scatter(const ray& rIn, const hitRecord& rec, colour& attenuation, ray& scattered) const override {
+            vec3 reflected = reflect(unitVector(rIn.direction()), rec.normal);
+            scattered = ray(rec.p, reflected + fuzz * randomInUnitSphere());  // Update the scattered ray
+            attenuation = albedo;  // Update the albedo
+            return (dot(scattered.direction(), rec.normal) > 0);  // Will only scatter if reflected such that the scattered ray is in the same direction as the normal to the surface
         }
 
 };
@@ -58,9 +58,8 @@ class dielectric : public material {
     public:
         dielectric(double index_of_refraction) : ir(index_of_refraction) {}
 
-        virtual bool scatter(
-            const ray& r_in, const hitRecord& rec, colour& attenuation, ray& scattered
-        ) const override {
+        virtual bool scatter(const ray& r_in, const hitRecord& rec, colour& attenuation, ray& scattered) const override {
+
             attenuation = colour(1.0, 1.0, 1.0);
             double refraction_ratio = rec.frontFace ? (1.0/ir) : ir;
 
